@@ -9,41 +9,56 @@ body {
     font-family: Arial, sans-serif;
     background: linear-gradient(red, darkred);
     color: gold;
-    padding: 20px;
 }
-h1 { font-size: 40px; }
+
+h1 {
+    margin-top: 20px;
+}
+
 input {
     padding: 10px;
     margin: 5px;
     font-size: 16px;
-    width: 250px;
 }
+
 button {
     padding: 12px 25px;
     font-size: 18px;
     background: gold;
     border: none;
     cursor: pointer;
-    margin-top: 15px;
+    margin-top: 10px;
 }
+
+.wheel-container {
+    position: relative;
+    width: 320px;
+    margin: 30px auto;
+}
+
 #wheel {
-    width: 280px;
-    height: 280px;
-    border: 10px solid gold;
+    width: 320px;
+    height: 320px;
     border-radius: 50%;
-    margin: 20px auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: white;
-    color: red;
-    font-size: 22px;
+    border: 8px solid gold;
+    transition: transform 4s ease-out;
 }
+
+.pointer {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 40px;
+    color: gold;
+}
+
 #envelope {
     display: none;
     margin-top: 20px;
     cursor: pointer;
 }
+
 #result {
     font-size: 28px;
     margin-top: 15px;
@@ -54,13 +69,16 @@ button {
 
 <h1>🧧 Vòng Quay Lì Xì 2026 🧧</h1>
 
-<div>
-    <input id="name" placeholder="Nhập tên của bạn"><br>
-    <input id="account" placeholder="Số tài khoản chính chủ"><br>
-    <button onclick="spin()">Quay ngay</button>
-</div>
+<input id="name" placeholder="Nhập tên">
+<br>
+<input id="account" placeholder="Số tài khoản">
+<br>
+<button onclick="spin()">Quay ngay</button>
 
-<div id="wheel">Chưa quay</div>
+<div class="wheel-container">
+    <div class="pointer">▼</div>
+    <canvas id="wheel" width="320" height="320"></canvas>
+</div>
 
 <div id="envelope" onclick="openEnvelope()">
     <img src="https://i.imgur.com/6X4K3KX.png" width="140">
@@ -70,6 +88,22 @@ button {
 <div id="result"></div>
 
 <script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzeUWlV0e6H_ZITOR9N8afJl_TpHkUIWminBb8ciYXZqC7kz5wezjKWoNFYyDS0r70/exec";
+
+const wheelItems = [
+    "1.000₫",
+    "2.000₫",
+    "5.000₫",
+    "10.000₫",
+    "20.000₫",
+    "50.000₫",
+    "100.000₫",
+    "200.000₫",
+    "400.000₫",
+    "500.000₫"
+];
+
+// chỉ các giải được phép trúng
 let prizes = [
     {name: "1.000₫", count: 10},
     {name: "2.000₫", count: 10},
@@ -82,45 +116,73 @@ let prizes = [
 
 let currentPrize = "";
 let currentUser = {};
+let angle = 0;
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzeUWlV0e6H_ZITOR9N8afJl_TpHkUIWminBb8ciYXZqC7kz5wezjKWoNFYyDS0r70/exec";
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+
+function drawWheel() {
+    const size = wheelItems.length;
+    const arc = (2 * Math.PI) / size;
+
+    for (let i = 0; i < size; i++) {
+        ctx.beginPath();
+        ctx.fillStyle = i % 2 === 0 ? "#ffd700" : "#ffcc00";
+        ctx.moveTo(160,160);
+        ctx.arc(160,160,160,i*arc,(i+1)*arc);
+        ctx.fill();
+
+        ctx.save();
+        ctx.translate(160,160);
+        ctx.rotate(i*arc + arc/2);
+        ctx.fillStyle = "red";
+        ctx.font = "14px Arial";
+        ctx.fillText(wheelItems[i], 60, 5);
+        ctx.restore();
+    }
+}
+
+drawWheel();
 
 function spin() {
     let name = document.getElementById("name").value.trim();
-    let account = document.getElementById("account").value.trim();
+let account = document.getElementById("account").value.trim();
 
     if (!name || !account) {
-        alert("Vui lòng nhập tên và số tài khoản.");
+        alert("Nhập đủ thông tin!");
         return;
     }
 
     let history = JSON.parse(localStorage.getItem("history") || "[]");
     if (history.find(h => h.account === account)) {
-        alert("Số tài khoản này đã quay rồi!");
+        alert("Bạn đã quay rồi!");
         return;
     }
 
     let available = prizes.filter(p => p.count > 0);
     if (available.length === 0) {
-        alert("Đã hết lì xì!");
+        alert("Hết lì xì!");
         return;
     }
 
-    let random = available[Math.floor(Math.random() * available.length)];
+    let random = available[Math.floor(Math.random()*available.length)];
     currentPrize = random.name;
     random.count--;
 
     currentUser = {name, account};
 
-    document.getElementById("wheel").innerText = "Đang quay...";
-    
-    setTimeout(() => {
-        document.getElementById("wheel").innerText = "Hoàn tất!";
+    let index = wheelItems.indexOf(currentPrize);
+    let deg = 360 - (index * (360 / wheelItems.length)) + 1440;
+
+    angle += deg;
+    canvas.style.transform = "rotate(" + angle + "deg)";
+
+    setTimeout(()=>{
         document.getElementById("envelope").style.display = "block";
-    }, 1200);
+    },4000);
 }
 
-function openEnvelope() {
+function openEnvelope(){
     document.getElementById("result").innerText =
         "Bạn nhận được: " + currentPrize;
 
@@ -135,18 +197,10 @@ function openEnvelope() {
     localStorage.setItem("history", JSON.stringify(history));
 
     fetch(SCRIPT_URL, {
-        method: "POST",
-        body: JSON.stringify({
-            name: currentUser.name,
-            account: currentUser.account,
-            prize: currentPrize
-        }),
-        headers: {
-            "Content-Type": "application/json"
-        }
+        method:"POST",
+        body:JSON.stringify(currentUser),
+        headers:{"Content-Type":"application/json"}
     });
-
-    alert("Kết quả đã được ghi nhận!");
 }
 </script>
 
