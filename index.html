@@ -197,10 +197,14 @@ function openEnvelope(){
     localStorage.setItem("history", JSON.stringify(history));
 
     fetch(SCRIPT_URL, {
-        method:"POST",
-        body:JSON.stringify(currentUser),
-        headers:{"Content-Type":"application/json"}
-    });
+    method: "POST",
+    body: JSON.stringify({
+        name: currentUser.name,
+        account: currentUser.account,
+        prize: currentPrize
+    }),
+    headers: {"Content-Type": "application/json"}
+});
 }
 </script>
 
